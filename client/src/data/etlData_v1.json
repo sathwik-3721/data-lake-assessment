@@ -1,0 +1,264 @@
+{
+  "data": [
+    {
+      "source": "Snowflake",
+      "destination": ["GCS"],
+      "loadType": ["Full Load"],
+      "loadTypeDetails": [
+        {
+          "loadType": "Full Load",
+          "ETLPipeline": [
+            "quality_evaluation_fact_extract",
+            "quality_evaluation_group_scores_extract",
+            "quality_evaluation_question_scores_extract",
+            "queue_resources_extract",
+            "resources_extract"
+          ],
+          "destinationTables": [
+            "QUALITY_EVALUATION_FACT",
+            "QUALITY_EVALUATION_GROUP_SCORES",
+            "QUALITY_EVALUATION_QUESTION_SCORES",
+            "QUEUE_RESOURCES",
+            "RESOURCES"
+          ],
+          "totalDestinationTables": [1, 1, 1, 1, 1]
+        }
+      ]
+    },
+    {
+      "source": "GCS",
+      "destination": ["BQ"],
+      "loadType": ["Full Load"],
+      "loadTypeDetails": [
+        {
+          "loadType": "Full Load",
+          "ETLPipeline": [
+            "quality_evaluation_fact_truncate",
+            "quality_evaluation_group_scores_truncate",
+            "quality_evaluation_question_scores_truncate",
+            "queue_resources_truncate",
+            "resources_truncate",
+            "vw_colorado_membership_kpi_daily_30_merge",
+            "vw_colorado_membership_kpi_daily_append",
+            "vw_co_members_mpaymentdetailsnapshot_truncate",
+            "vw_co_members_mpaymentsnapshot_truncate",
+            "vw_co_members_mstatisticsnapshot_truncate",
+            "vw_membershipinformation_truncate",
+            "ar_bal_summary_delete",
+            "ar_bal_summary_merge",
+            "ar_client_delete",
+            "ar_client_merge",
+            "ar_covctl_delete",
+            "ar_covctl_merge",
+            "ar_driver_delete",
+            "ar_driver_merge",
+            "ar_genpol_delete",
+            "ar_genpol_merge",
+            "ar_group_delete",
+            "ar_group_merge",
+            "ar_oth_int_delete",
+            "ar_oth_int_merge",
+            "ar_pol_hldr_delete",
+            "ar_pol_hldr_merge",
+            "ar_x_agent_truncate",
+            "ar_x_branch_truncate",
+            "co_policy_discount_truncate",
+            "co_policy_snapshot_delete",
+            "co_policy_snapshot_merge",
+            "co_policy_soi_truncate",
+            "co_policy_term_delete",
+            "co_policy_term_merge",
+            "co_product_delete",
+            "co_product_merge",
+            "co_product_payment_option_truncate",
+            "co_rpt_covex_delete",
+            "co_rpt_covex_merge",
+            "agroups_truncate",
+            "dagent_merge",
+            "dsplit_truncate",
+            "hagent_truncate",
+            "hsplit_truncate",
+            "hvdn_truncate",
+            "hvector_truncate",
+            "msplit_truncate",
+            "mvdn_truncate",
+            "synonyms_truncate"
+          ],
+          "destinationTables": [
+            "QUALITY_EVALUATION_FACT",
+            "QUALITY_EVALUATION_GROUP_SCORES",
+            "QUALITY_EVALUATION_QUESTION_SCORES",
+            "QUEUE_RESOURCES",
+            "RESOURCES",
+            "VW_COLORADO_MEMBERSHIP_KPI_DAILY_30",
+            "VW_COLORADO_MEMBERSHIP_KPI_DAILY",
+            "VW_CO_MEMBERS_MPAYMENTDETAILSNAPSHOT",
+            "VW_CO_MEMBERS_MPAYMENTSNAPSHOT",
+            "VW_CO_MEMBERS_MSTATISTICSNAPSHOT",
+            "VW_MEMBERSHIPINFORMATION",
+            "AR_BAL_SUMMARY",
+            "AR_CLIENT",
+            "AR_COVCTL",
+            "AR_DRIVER",
+            "AR_GENPOL",
+            "AR_GROUP",
+            "AR_OTH_INT",
+            "AR_POL_HLDR",
+            "AR_X_AGENT",
+            "AR_X_BRANCH",
+            "CO_POLICY_DISCOUNT",
+            "CO_POLICY_SNAPSHOT",
+            "CO_POLICY_SOI",
+            "CO_POLICY_TERM",
+            "CO_PRODUCT",
+            "CO_PRODUCT_PAYMENT_OPTION",
+            "CO_RPT_COVEX",
+            "AGROUPS",
+            "DAGENT",
+            "DSPLIT",
+            "HAGENT",
+            "HSPLIT",
+            "HVDN",
+            "HVECTOR",
+            "MSPLIT",
+            "MVDN",
+            "SYNONYMS"
+          ],
+          "totalDestinationTables": [38]
+        }
+      ]
+    },
+    {
+      "source": "SQL Server",
+      "destination": ["GCS"],
+      "loadType": ["Full Load"],
+      "loadTypeDetails": [
+        {
+          "loadType": "Full Load",
+          "ETLPipeline": [
+            "vw_colorado_membership_kpi_daily_30_extract",
+            "vw_colorado_membership_kpi_daily_extract",
+            "vw_co_members_mpaymentdetailsnapshot_extract",
+            "vw_co_members_mpaymentsnapshot_extract",
+            "vw_co_members_mstatisticsnapshot_extract",
+            "vw_membershipinformation_extract"
+          ],
+          "destinationTables": [
+            "VW_COLORADO_MEMBERSHIP_KPI_DAILY_30",
+            "VW_COLORADO_MEMBERSHIP_KPI_DAILY",
+            "VW_CO_MEMBERS_MPAYMENTDETAILSNAPSHOT",
+            "VW_CO_MEMBERS_MPAYMENTSNAPSHOT",
+            "VW_CO_MEMBERS_MSTATISTICSNAPSHOT",
+            "VW_MEMBERSHIPINFORMATION"
+          ],
+          "totalDestinationTables": [6]
+        }
+      ]
+    },
+    {
+      "source": "DB2",
+      "destination": ["GCS"],
+      "loadType": ["Full Load"],
+      "loadTypeDetails": [
+        {
+          "loadType": "Full Load",
+          "ETLPipeline": [
+            "ar_bal_summary_extract",
+            "ar_client_extract",
+            "ar_covctl_extract",
+            "ar_driver_extract",
+            "ar_genpol_extract",
+            "ar_group_extract",
+            "ar_oth_int_extract",
+            "ar_pol_hldr_extract",
+            "ar_x_agent_extract",
+            "ar_x_branch_extract"
+          ],
+          "destinationTables": [
+            "AR_BAL_SUMMARY",
+            "AR_CLIENT",
+            "AR_COVCTL",
+            "AR_DRIVER",
+            "AR_GENPOL",
+            "AR_GROUP",
+            "AR_OTH_INT",
+            "AR_POL_HLDR",
+            "AR_X_AGENT",
+            "AR_X_BRANCH"
+          ],
+          "totalDestinationTables": [10]
+        }
+      ]
+    },
+    {
+      "source": "Oracle",
+      "destination": ["GCS"],
+      "loadType": ["Full Load"],
+      "loadTypeDetails": [
+        {
+          "loadType": "Full Load",
+          "ETLPipeline": [
+            "co_policy_discount_extract",
+            "co_policy_snapshot_extract",
+            "co_policy_soi_extract",
+            "co_policy_term_extract",
+            "co_product_extract",
+            "co_product_payment_option_extract",
+            "co_rpt_covex_extract"
+          ],
+          "destinationTables": [
+            "CO_POLICY_DISCOUNT",
+            "CO_POLICY_SNAPSHOT",
+            "CO_POLICY_SOI",
+            "CO_POLICY_TERM",
+            "CO_PRODUCT",
+            "CO_PRODUCT_PAYMENT_OPTION",
+            "CO_RPT_COVEX"
+          ],
+          "totalDestinationTables": [7]
+        }
+      ]
+    },
+    {
+      "source": "Informix",
+      "destination": ["GCS"],
+      "loadType": ["Full Load"],
+      "loadTypeDetails": [
+        {
+          "loadType": "Full Load",
+          "ETLPipeline": [
+            "agroups_extract",
+            "dagent_extract",
+            "dsplit_extract",
+            "hagent_extract",
+            "hsplit_extract",
+            "hvdn_extract",
+            "hvector_extract",
+            "msplit_extract",
+            "mvdn_extract",
+            "synonyms_extract"
+          ],
+          "destinationTables": [
+            "AGROUPS",
+            "DAGENT",
+            "DSPLIT",
+            "HAGENT",
+            "HSPLIT",
+            "HVDN",
+            "HVECTOR",
+            "MSPLIT",
+            "src_table",
+            "SYNONYMS"
+          ],
+          "totalDestinationTables": [10]
+        }
+      ]
+    }
+  ],
+
+  "scoreValues": {
+    "sum_total_tables": 189,
+    "orchestration_pipelines": 12,
+    "overall_duration_minutes": 688
+  }
+}
