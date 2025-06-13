@@ -1,6 +1,4 @@
-// dataLake.controller.js
 import dotenv from "dotenv";
-import multer from "multer";
 import path from "path";
 import fs from "fs";
 import xlsx from "xlsx";
@@ -11,6 +9,53 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Column alias mapping
+const columnAliases = {
+  // Source
+  source: "source",
+
+  // Destination
+  "destination_database/storage_object_name": "destination",
+  destination: "destination",
+
+  // Load Type
+  load_type: "loadType",
+  "load type": "loadType",
+
+  // ETL Pipeline
+  etl_pipeline: "ETLPipeline",
+  job_name: "ETLPipeline",
+
+  // Destination Tables
+  destination_tables: "destinationTables",
+  "destination_table/storage_object_location": "destinationTables",
+
+  // Total Tables
+  total_tables: "totalDestinationTables",
+
+  "sumofpipelineduration(min)": "sumPipelineDuration",
+};
+
+function normalizeRow(row) {
+  const obj = {};
+  for (let key in row) {
+    const normKey = key.trim().toLowerCase().replace(/\s+/g, "_");
+    const mappedKey = columnAliases[normKey] || normKey;
+    obj[mappedKey] = row[key];
+  }
+
+  // Fill totalDestinationTables if missing
+  if (!obj.totalDestinationTables && obj.destinationTables) {
+    const count = String(obj.destinationTables)
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean).length;
+    obj.totalDestinationTables = count;
+  }
+
+  return obj;
+}
+
 export function uploadFile(req, res) {
   try {
     if (!req.file) return res.status(400).json({ error: "File is required" });
@@ -20,26 +65,19 @@ export function uploadFile(req, res) {
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const json = xlsx.utils.sheet_to_json(sheet, { defval: "" });
 
-    const normalizedData = json.map((row) => {
-      const obj = {};
-      for (let key in row) {
-        const normKey = key.trim().toLowerCase().replace(/\s+/g, "_");
-        obj[normKey] = row[key];
-      }
-      return obj;
-    });
+    const normalizedData = json.map(normalizeRow);
 
     const resultMap = new Map();
     const allTables = new Set();
     const allPipelines = new Set();
 
     normalizedData.forEach((row) => {
-      const source = row["source"];
-      const destinationDb = row["destination_database/storage_object_name" || "destination"];
-      const destinationTable = row["destination_table/storage_object_location" || "destination tables"];
-      const loadType = row["load_type" || "load type"];
-      const etlPipeline = row["job_name" || "etl pipeline"];
-      const sourceDb = row["source_database_name"];
+      const source = row.source;
+      const destinationDb = row.destination;
+      const destinationTable = row.destinationTables;
+      const loadType = row.loadType;
+      const etlPipeline = row.ETLPipeline;
+      const sourceDb = row.source_database_name;
 
       if (!source || !loadType) return;
 
@@ -67,7 +105,13 @@ export function uploadFile(req, res) {
 
       const detail = entry.Load_Type_Details.get(loadType);
       if (etlPipeline) detail.ETL_Pipeline.add(etlPipeline);
-      if (destinationTable) detail.Destination_Tables.add(destinationTable);
+      if (destinationTable) {
+        destinationTable
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean)
+          .forEach((t) => detail.Destination_Tables.add(t));
+      }
     });
 
     const output = Array.from(resultMap.entries()).map(([source, entry]) => {
@@ -75,41 +119,50 @@ export function uploadFile(req, res) {
         source,
         destination: Array.from(entry.DestinationDB),
         loadType: Array.from(entry.LoadType),
-        loadTypeDetails: Array.from(entry.Load_Type_Details.values()).map((detail) => {
-          detail.Destination_Tables.forEach((t) => allTables.add(t));
-          detail.ETL_Pipeline.forEach((p) => allPipelines.add(p));
+        loadTypeDetails: Array.from(entry.Load_Type_Details.values()).map(
+          (detail) => {
+            detail.Destination_Tables.forEach((t) => allTables.add(t));
+            detail.ETL_Pipeline.forEach((p) => allPipelines.add(p));
 
-          const pipelineTableMap = new Map();
+            const pipelineTableMap = new Map();
 
-          normalizedData.forEach((row) => {
-            const lt = row["load_type" || "load type"];
-            const pipeline = row["job_name" || "etl pipeline"];
-            const table = row["destination_table/storage_object_location" || "destination tables"];
-            if (lt === detail.Load_type && pipeline && table) {
-              if (!pipelineTableMap.has(pipeline)) {
-                pipelineTableMap.set(pipeline, new Set());
+            normalizedData.forEach((row) => {
+              if (
+                row.loadType === detail.Load_type &&
+                row.ETLPipeline &&
+                row.destinationTables
+              ) {
+                const pipeline = row.ETLPipeline;
+                if (!pipelineTableMap.has(pipeline)) {
+                  pipelineTableMap.set(pipeline, new Set());
+                }
+
+                const tables = String(row.destinationTables)
+                  .split(",")
+                  .map((t) => t.trim())
+                  .filter(Boolean);
+                tables.forEach((t) => pipelineTableMap.get(pipeline).add(t));
               }
-              pipelineTableMap.get(pipeline).add(table);
-            }
-          });
+            });
 
-          const pipelineList = Array.from(detail.ETL_Pipeline);
-          const destinationTables = pipelineList.map((pipeline) => {
-            const tables = pipelineTableMap.get(pipeline) || new Set();
-            return Array.from(tables).join(", ");
-          });
+            const pipelineList = Array.from(detail.ETL_Pipeline);
+            const destinationTables = pipelineList.map((pipeline) => {
+              const tables = pipelineTableMap.get(pipeline) || new Set();
+              return Array.from(tables).join(", ");
+            });
 
-          const totalDestinationTables = destinationTables.map((tblStr) =>
-            tblStr.trim() === "" ? 0 : tblStr.split(",").length
-          );
+            const totalDestinationTables = destinationTables.map((tblStr) =>
+              tblStr.trim() === "" ? 0 : tblStr.split(",").length
+            );
 
-          return {
-            loadType: detail.Load_type,
-            ETLPipeline: pipelineList,
-            destinationTables,
-            totalDestinationTables,
-          };
-        }),
+            return {
+              loadType: detail.Load_type,
+              ETLPipeline: pipelineList,
+              destinationTables,
+              totalDestinationTables,
+            };
+          }
+        ),
       };
     });
 
@@ -121,7 +174,7 @@ export function uploadFile(req, res) {
       },
     };
 
-    // fs.unlinkSync(filePath); // Cleanup uploaded file
+    // fs.unlinkSync(filePath); // optional cleanup
     res.json(finalResponse);
   } catch (error) {
     console.error("Processing error:", error);
