@@ -1,3 +1,4 @@
+// // Prasanth Data
 // import React, { useCallback, useRef } from 'react';
 // import ReactFlow, {
 //   Background,
@@ -572,9 +573,16 @@ const collapseSiblings = (currentNode, allNodes, allEdges, expandedMapRef) => {
 };
 
 const LineageFlow = ({ lineageData }) => {
-  const rawData = Array.isArray(lineageData)
-    ? lineageData
-    : lineageData.data || [];
+  const rawData = (() => {
+    try {
+      const json = localStorage.getItem("etlData");
+      const parsed = JSON.parse(json);
+      return Array.isArray(parsed) ? parsed : parsed?.data || [];
+    } catch (err) {
+      console.error("Failed to parse etlData from localStorage", err);
+      return [];
+    }
+  })();
 
   const initialNodes = [
     createNode("Data Source", "source", { x: 100, y: 100 }, { parent: null }),

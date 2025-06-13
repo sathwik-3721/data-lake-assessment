@@ -113,7 +113,7 @@
 
 // harish data
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import etlJson from "../data/etlData.json"; // now has { data: [...], scoreValues: {...} }
 import FilterBar from "./FilterBar";
 import ScoreCard from "./ScoreCard";
@@ -132,6 +132,9 @@ export default function LineageFlowView() {
   const navigate = useNavigate();
   const [selectedSource, setSelectedSource] = useState(null);
   const [selectedLoadType, setSelectedLoadType] = useState(null);
+  const { state } = useLocation();
+  const etlDataFromState = state?.data;
+  console.log("objects etlDataFromState : ", etlDataFromState);
 
   const toggleSource = (source) =>
     setSelectedSource((prev) => (prev === source ? null : source));
@@ -214,7 +217,7 @@ export default function LineageFlowView() {
         </div>
       </div>
 
-      <LineageFlow lineageData={filteredData} />
+      <LineageFlow lineageData={etlDataFromState} />
     </main>
   );
 }

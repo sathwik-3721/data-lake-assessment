@@ -35,10 +35,10 @@ export function uploadFile(req, res) {
 
     normalizedData.forEach((row) => {
       const source = row["source"];
-      const destinationDb = row["destination_database/storage_object_name"];
-      const destinationTable = row["destination_table/storage_object_location"];
-      const loadType = row["load_type"];
-      const etlPipeline = row["job_name"];
+      const destinationDb = row["destination_database/storage_object_name" || "destination"];
+      const destinationTable = row["destination_table/storage_object_location" || "destination tables"];
+      const loadType = row["load_type" || "load type"];
+      const etlPipeline = row["job_name" || "etl pipeline"];
       const sourceDb = row["source_database_name"];
 
       if (!source || !loadType) return;
@@ -82,9 +82,9 @@ export function uploadFile(req, res) {
           const pipelineTableMap = new Map();
 
           normalizedData.forEach((row) => {
-            const lt = row["load_type"];
-            const pipeline = row["job_name"];
-            const table = row["destination_table/storage_object_location"];
+            const lt = row["load_type" || "load type"];
+            const pipeline = row["job_name" || "etl pipeline"];
+            const table = row["destination_table/storage_object_location" || "destination tables"];
             if (lt === detail.Load_type && pipeline && table) {
               if (!pipelineTableMap.has(pipeline)) {
                 pipelineTableMap.set(pipeline, new Set());
@@ -121,11 +121,31 @@ export function uploadFile(req, res) {
       },
     };
 
-    fs.unlinkSync(filePath); // Cleanup uploaded file
+    // fs.unlinkSync(filePath); // Cleanup uploaded file
     res.json(finalResponse);
   } catch (error) {
     console.error("Processing error:", error);
     res.status(500).json({ error: "Failed to process file" });
+  }
+}
+
+export function previewFile(req, res) {
+  try {
+    const uploadsPath = path.join(__dirname, "uploads");
+    const files = fs.readdirSync(uploadsPath);
+    if (files.length === 0) {
+      return res.status(404).json({ error: "No files uploaded" });
+    }
+
+    const latestFile = path.join(uploadsPath, files[files.length - 1]);
+    const workbook = xlsx.readFile(latestFile);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const json = xlsx.utils.sheet_to_json(sheet, { defval: "" });
+
+    res.json({ data: json });
+  } catch (error) {
+    console.error("Error in previewFile:", error);
+    res.status(500).json({ error: "Unable to preview file" });
   }
 }
 

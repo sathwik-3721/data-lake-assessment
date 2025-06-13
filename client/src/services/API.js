@@ -1,21 +1,28 @@
 import axios from "axios";
+
+const apiClient = axios.create({
+  baseURL: "http://localhost:5000/v1", 
+})
+
 export default {
-  get: {
-    fakeProducts: () => {
-      return axios.get("https://fakestoreapi.com/products/1");
-    },
-  },
   post: {
-    fakeProduct: (body) => {
-      return axios.post("https://fakestoreapi.com/products", body);
+    upload: async (file) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      const response = await apiClient.post("/api/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      console.log("Response from upload:", response?.data);
+      return response?.data;
     },
   },
-  put: {
-    fakeProduct: (body) => {
-      return axios.put("https://fakestoreapi.com/products/7", body);
+  get: {
+    preview: async () => {
+      const response = await apiClient.get("/api/preview");
+      console.log("Preview response:", response?.data);
+      return response?.data;
     },
-  },
-  delete: {
-    fakeProduct: () => axios.delete("https://fakestoreapi.com/products/6"),
   },
 };

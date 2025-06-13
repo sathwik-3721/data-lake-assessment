@@ -1,4 +1,4 @@
-import { test, uploadFile } from "../controllers/dataLake.controller.js";
+import { test, uploadFile, previewFile } from "../controllers/dataLake.controller.js";
 import express from "express";
 import multer from 'multer';
 import path from "path";
@@ -16,7 +16,7 @@ const uploadDir = path.join(__dirname, '..', 'controllers', 'uploads');
 console.log("objects uploadDir : ", uploadDir);
 
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 const storage = multer.diskStorage({
@@ -44,5 +44,6 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 router.route("/test").get(test);
 router.route('/upload').post(upload.single('file'), uploadFile);
+router.route("/preview").get(previewFile);
 
 export default router;
