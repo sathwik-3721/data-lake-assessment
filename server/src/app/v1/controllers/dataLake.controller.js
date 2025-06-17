@@ -33,7 +33,7 @@ const columnAliases = {
   // Total Tables
   total_tables: "totalDestinationTables",
 
-  "sumofpipelineduration(min)": "sumPipelineDuration",
+  "sum_of_pipeline_duration(min)": "sumPipelineDuration",
 };
 
 function normalizeRow(row) {
@@ -70,6 +70,15 @@ export function uploadFile(req, res) {
     const resultMap = new Map();
     const allTables = new Set();
     const allPipelines = new Set();
+
+    // Extract existing value for sumPipelineDuration (first non-empty row)
+    let totalPipelineDurationMin = 0;
+    for (const row of normalizedData) {
+      const val = parseFloat(row.sumPipelineDuration);
+      if (!isNaN(val)) {
+        totalPipelineDurationMin += val;
+      }
+    }
 
     normalizedData.forEach((row) => {
       const source = row.source;
@@ -171,6 +180,7 @@ export function uploadFile(req, res) {
       scoreValues: {
         sumTotalTables: allTables.size,
         orchestrationPipelines: allPipelines.size,
+        totalPipelineDurationMin: totalPipelineDurationMin,
       },
     };
 
