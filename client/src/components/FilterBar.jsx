@@ -26,7 +26,7 @@ export default function FilterBar({
         return (
           <span className="flex gap-1 items-center">
             <SiSap size={24} className={iconColor} />
-            Optional Oracle icon: <SiOracle size={16} className={iconColor} />
+            <SiOracle size={16} className={iconColor} />
           </span>
         );
       case "SQL Server":
