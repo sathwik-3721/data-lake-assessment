@@ -200,7 +200,7 @@ export default function Dashboard({ setAuthenticated }) {
     <div className="w-full h-screen overflow-hidden flex flex-col">
       {/* Header */}
       <header className="bg-white shadow border-b border-gray-200 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto py-4 flex items-center justify-between gap-4">
           <img
             src="https://images.miraclesoft.com/miracle-logo-dark.svg"
             alt="Miracle Logo"
@@ -216,11 +216,12 @@ export default function Dashboard({ setAuthenticated }) {
               <Avatar className="cursor-pointer h-9 w-9">
                 <AvatarFallback className="bg-gray-200 text-gray-800 font-semibold">
                   {username
+                    .replace(/[^a-zA-Z ]/g, "")
                     .split(" ")
-                    .map((n) => n[0])
+                    .flatMap((word) => (word[0] ? word[0] : []))
+                    .slice(0, 2)
                     .join("")
-                    .toUpperCase()
-                    .slice(0, 2)}
+                    .toUpperCase()}
                 </AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
@@ -229,7 +230,7 @@ export default function Dashboard({ setAuthenticated }) {
                 {username}
               </div>
               <DropdownMenuItem
-                className="text-miracle-red font-semibold cursor-pointer hover:bg-miracle-red/20 transition-colors items-center justify-center"
+                className="text-miracle-red font-semibold cursor-pointer hover:bg-miracle-red/10 hover:text-miracle-red items-center justify-center"
                 onClick={() => {
                   setAuthenticated(false);
                   localStorage.clear();
@@ -251,7 +252,7 @@ export default function Dashboard({ setAuthenticated }) {
             <div className="text-center lg:text-middle">
               {customerLogo.preview ? (
                 <div className="relative inline-block">
-                  <img
+                  {/* <img
                     src={customerLogo.preview}
                     alt="Customer Logo"
                     className="max-h-32 max-w-full object-contain bg-white border"
@@ -267,6 +268,17 @@ export default function Dashboard({ setAuthenticated }) {
                         "❌ Logo image failed:",
                         customerLogo.preview
                       );
+                      handleRemoveLogo();
+                    }}
+                  /> */}
+                  <img
+                    src={customerLogo.preview}
+                    alt="Customer Logo"
+                    className="max-h-32 max-w-full object-contain bg-inherit"
+                    onLoad={() => {
+                      setLogoLoaded(true);
+                    }}
+                    onError={() => {
                       handleRemoveLogo();
                     }}
                   />
@@ -352,7 +364,7 @@ export default function Dashboard({ setAuthenticated }) {
                       />
                       <Button
                         onClick={handleLogoUrl}
-                        className="w-full"
+                        className="w-full bg-miracle-mediumBlue hover:bg-miracle-mediumBlue/90 text-white"
                         size="sm"
                       >
                         Load Logo
