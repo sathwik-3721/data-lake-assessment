@@ -5,7 +5,6 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import React from "react";
 import { Filter, Zap, Repeat } from "lucide-react";
 import { SiSap, SiOracle } from "react-icons/si";
 import { FaServer, FaNetworkWired, FaDatabase } from "react-icons/fa";

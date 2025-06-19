@@ -8,6 +8,11 @@ module.exports = {
     './app/**/*.{js,jsx}',
     './src/**/*.{js,jsx}',
   ],
+  safelist: [
+  'hover:bg-miracle-red/10',
+  'hover:bg-miracle-red/20',
+  'hover:bg-miracle-red/30',
+],
   prefix: "",
   theme: {
     container: {

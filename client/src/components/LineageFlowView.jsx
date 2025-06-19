@@ -130,8 +130,8 @@
 //   );
 // }
 
-import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import FilterBar from "./FilterBar";
 import ScoreCard from "./ScoreCard";
 import LineageFlow from "./LineageFlow";
@@ -144,8 +144,6 @@ const getAllLoadTypes = (data) => [...new Set(data.flatMap((d) => d.loadType))];
 
 export default function LineageFlowView() {
   const navigate = useNavigate();
-  const { state } = useLocation();
-  const etlDataFromState = state?.data;
   const [scoreValues, setScoreValues] = useState({});
   const [etlData, setEtlData] = useState([]);
   const [selectedSource, setSelectedSource] = useState(null);
