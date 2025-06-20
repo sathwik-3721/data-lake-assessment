@@ -187,6 +187,42 @@ export default function Dashboard({ setAuthenticated }) {
     }
   };
 
+  const handleLogOut = async () => {
+    try {
+      // 1) grab the raw string
+      const raw = localStorage.getItem("etlData");
+      if (raw) {
+        // 2) parse it
+        const etlData = JSON.parse(raw);
+        console.log("Parsed etlData:", etlData);
+
+        // 3) get the fileId field
+        const { fileId } = etlData;
+        if (fileId) {
+          // 4) split/pop to extract just the filename
+          const fileName = fileId
+            .split("/") // in case you ever use forward-slashes
+            .pop()
+            .split("\\") // Windows back-slashes
+            .pop();
+
+          console.log("Filename to delete:", fileName);
+
+          // 5) call your DELETE endpoint
+          await API.delete.remove(fileName);
+          console.log(`Deleted ${fileName} on logout`);
+        }
+      }
+    } catch (err) {
+      console.error("Error deleting file on logout:", err);
+    } finally {
+      // 6) now clear everything and redirect
+      setAuthenticated(false);
+      localStorage.clear();
+      navigate("/login");
+    }
+  };
+
   const keyDetailsLabels = {
     clientName: "Client Name",
     assessmentStartDate: "Assessment Start Date",
@@ -231,11 +267,7 @@ export default function Dashboard({ setAuthenticated }) {
               </div>
               <DropdownMenuItem
                 className="text-miracle-red font-semibold cursor-pointer hover:bg-miracle-red/10 hover:text-miracle-red items-center justify-center"
-                onClick={() => {
-                  setAuthenticated(false);
-                  localStorage.clear();
-                  navigate("/login");
-                }}
+                onClick={handleLogOut}
               >
                 Logout
               </DropdownMenuItem>

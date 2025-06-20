@@ -18,6 +18,7 @@ export default {
       return response?.data;
     },
   },
+
   get: {
     preview: async () => {
       const response = await apiClient.get("/api/preview");
@@ -25,4 +26,12 @@ export default {
       return response?.data;
     },
   },
+
+  delete: {
+    remove: async (fileName) => {
+      const response = await apiClient.delete(`/api/delete/${fileName}`);
+      console.log("Delete response:", response?.data);
+      return response?.data;
+    },
+  }
 };

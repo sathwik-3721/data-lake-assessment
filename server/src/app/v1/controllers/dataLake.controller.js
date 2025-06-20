@@ -176,6 +176,7 @@ export function uploadFile(req, res) {
     });
 
     const finalResponse = {
+      fileId: path.basename(filePath),
       data: output,
       scoreValues: {
         sumTotalTables: allTables.size,
@@ -183,6 +184,8 @@ export function uploadFile(req, res) {
         totalPipelineDurationMin: totalPipelineDurationMin,
       },
     };
+
+    console.log("Final Response:", JSON.stringify(finalResponse, null, 2));
 
     // fs.unlinkSync(filePath); // optional cleanup
     res.json(finalResponse);
@@ -219,5 +222,33 @@ export function test(req, res) {
   } catch (error) {
     console.error("An error occurred in test function:", error);
     res.status(500).json({ message: "An error occurred" });
+  }
+}
+
+export function deleteFile(req, res) {
+  const { fileName } = req.params;
+
+  if (!fileName) {
+    return res.status(400).json({ error: "fileName parameter is required" });
+  }
+
+  try {
+    const uploadsPath = path.join(__dirname, "uploads");
+    const targetPath = path.join(uploadsPath, fileName);
+
+    // Check that targetPath is inside uploadsPath
+    if (!targetPath.startsWith(uploadsPath)) {
+      return res.status(400).json({ error: "Invalid file path" });
+    }
+
+    if (!fs.existsSync(targetPath)) {
+      return res.status(404).json({ error: "File not found" });
+    }
+
+    fs.unlinkSync(targetPath);
+    return res.json({ message: `${fileName} deleted successfully` });
+  } catch (error) {
+    console.error("Error in deleteFile:", error);
+    return res.status(500).json({ error: "Unable to delete file" });
   }
 }

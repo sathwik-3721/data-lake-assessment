@@ -1,4 +1,4 @@
-import { test, uploadFile, previewFile } from "../controllers/dataLake.controller.js";
+import { test, uploadFile, previewFile, deleteFile } from "../controllers/dataLake.controller.js";
 import express from "express";
 import multer from 'multer';
 import path from "path";
@@ -45,5 +45,6 @@ const upload = multer({ storage: storage });
 router.route("/test").get(test);
 router.route('/upload').post(upload.single('file'), uploadFile);
 router.route("/preview").get(previewFile);
+router.route("/delete/:fileName").delete(deleteFile)
 
 export default router;
