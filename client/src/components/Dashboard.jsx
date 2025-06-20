@@ -101,19 +101,103 @@ export default function Dashboard({ setAuthenticated }) {
     const confirmed = localStorage.getItem("logoConfirmed") === "true";
     setLogoConfirmed(confirmed);
 
-    // Check for shared view parameter
+    // Check for shared view parameter and data
     const queryParams = new URLSearchParams(location.search);
-    if (queryParams.get("shared") === "true") {
+    const isShared = queryParams.get("shared") === "true";
+    const sharedDataParam = queryParams.get("data");
+
+    if (isShared) {
       setIsSharedView(true);
-      // Optionally, display a toast or message indicating it's a shared view
       toast(
         <div className="text-sm font-semibold text-blue-600 font-sans">
           ℹ️ Viewing shared report (read-only).
         </div>,
         { duration: 3000 }
       );
+
+      if (sharedDataParam) {
+        try {
+          const decodedData = atob(decodeURIComponent(sharedDataParam)); // Decode URI component first, then Base64
+          const parsedData = JSON.parse(decodedData);
+
+          if (parsedData.reportDetails) setReportDetails(parsedData.reportDetails);
+          if (parsedData.customerLogo) {
+            // Ensure preview is correctly set up if it's a file-based logo from shared data
+            const logoData = parsedData.customerLogo;
+            const preview = logoData.type === "url" ? logoData.data : logoData.preview;
+            setCustomerLogo({ ...logoData, preview });
+            if (logoData.type === "url") setLogoUrl(logoData.data);
+            // If it's a file type, the 'data' field (File object) won't be serializable.
+            // The 'preview' (base64 string) is what gets used for display.
+          }
+          if (parsedData.etlData) {
+            setData(parsedData.etlData); // Set the main data state
+            localStorage.setItem("etlData", JSON.stringify(parsedData.etlData)); // Also store in LS for other components if they rely on it for shared view
+          }
+          if (typeof parsedData.isUpload === 'boolean') {
+            setIsUpload(parsedData.isUpload);
+            localStorage.setItem("isUpload", parsedData.isUpload.toString());
+          }
+          if (typeof parsedData.logoConfirmed === 'boolean') {
+            setLogoConfirmed(parsedData.logoConfirmed);
+            localStorage.setItem("logoConfirmed", parsedData.logoConfirmed.toString());
+          }
+          if (parsedData.previewData) {
+            setPreviewData(parsedData.previewData);
+            // Optionally save to localStorage if other parts of app might need it,
+            // though direct state setting is primary for Dashboard.
+          }
+
+          // Important: Prevent re-fetching from localStorage for these items
+          // by returning early or using a flag if this useEffect has more logic below.
+          // For now, the subsequent localStorage reads for these specific items are effectively overridden by these state updates.
+
+        } catch (e) {
+          console.error("Error parsing shared data from URL:", e);
+          toast(
+            <div className="text-sm font-semibold text-red-500 font-sans">
+              ❌ Error loading shared report data. It might be corrupted.
+            </div>,
+            { duration: 3000 }
+          );
+          // Fallback to default empty shared view
+        }
+      } else {
+         // Shared link but no data param, load from local storage as before (if any)
+        loadStateFromLocalStorage();
+      }
+    } else {
+      // Not a shared link, load everything from localStorage as usual
+      loadStateFromLocalStorage();
     }
   }, [location]); // Add location to dependency array
+
+  // Helper function to consolidate localStorage loading
+  const loadStateFromLocalStorage = () => {
+    const uploadStatus = localStorage.getItem("isUpload");
+    if (uploadStatus === "true") setIsUpload(true);
+
+    const savedDetails = localStorage.getItem("reportDetails");
+    if (savedDetails) setReportDetails(JSON.parse(savedDetails));
+
+    const savedLogo = localStorage.getItem("customerLogo");
+    if (savedLogo) {
+      const logoData = JSON.parse(savedLogo);
+      const preview = logoData.type === "url" ? logoData.data : logoData.preview;
+      setCustomerLogo({ ...logoData, preview });
+      if (logoData.type === "url") setLogoUrl(logoData.data);
+    }
+    const confirmed = localStorage.getItem("logoConfirmed") === "true";
+    setLogoConfirmed(confirmed);
+
+    // Load etlData if not already loaded by shared link
+    const etlDataFromStorage = localStorage.getItem("etlData");
+    if (etlDataFromStorage && !data) { // only load if 'data' state is not already set (e.g. by shared link)
+        setData(JSON.parse(etlDataFromStorage));
+    }
+    // Note: previewData is typically fetched on demand, not stored in LS long-term unless by shared link.
+  };
+
 
   const handleUpload = async (file) => {
     if (isSharedView) {
@@ -199,10 +283,45 @@ export default function Dashboard({ setAuthenticated }) {
   };
 
   const handleShare = () => {
-    const currentUrl = window.location.origin + window.location.pathname;
-    const link = `${currentUrl}?shared=true`;
-    setShareableLink(link);
-    setShowShareModal(true);
+    // Ensure current state is reflected from localStorage if necessary,
+    // though component state should be up-to-date.
+    const currentReportDetails = JSON.parse(localStorage.getItem("reportDetails")) || reportDetails;
+    const currentCustomerLogo = JSON.parse(localStorage.getItem("customerLogo")) || customerLogo;
+    const currentEtlData = JSON.parse(localStorage.getItem("etlData")) || data; // data is the state for etlData
+    const currentIsUpload = localStorage.getItem("isUpload") === "true" || isUpload;
+    const currentLogoConfirmed = localStorage.getItem("logoConfirmed") === "true" || logoConfirmed;
+    const currentPreviewData = previewData; // If previewData is available, include it.
+
+    const dataToShare = {
+      reportDetails: currentReportDetails,
+      customerLogo: currentCustomerLogo, // Contains type, data (url) or preview (b64)
+      etlData: currentEtlData,
+      isUpload: currentIsUpload,
+      logoConfirmed: currentLogoConfirmed,
+      previewData: currentPreviewData, // Include previewData if available
+    };
+
+    try {
+      const jsonString = JSON.stringify(dataToShare);
+      const base64Data = btoa(jsonString); // Browser's built-in Base64 encoder
+
+      // Construct the base URL (e.g., http://localhost:5173/dashboard)
+      // window.location.origin gives http://localhost:5173
+      // We want the path to be /dashboard explicitly.
+      const baseUrl = `${window.location.origin}/dashboard`;
+      const link = `${baseUrl}?shared=true&data=${encodeURIComponent(base64Data)}`;
+
+      setShareableLink(link);
+      setShowShareModal(true);
+    } catch (error) {
+      console.error("Error generating shareable link:", error);
+      toast(
+        <div className="text-sm font-semibold text-red-500 font-sans">
+          ❌ Error generating share link. Data might be too large or invalid.
+        </div>,
+        { duration: 3000 }
+      );
+    }
   };
 
   const handleCopyToClipboard = async () => {
@@ -314,10 +433,15 @@ export default function Dashboard({ setAuthenticated }) {
 
           <h1 className="text-lg sm:text-xl font-bold text-center flex-1">
             {reportDetails.clientName || "Customer Name"} ETL Assessment Report
+            {isSharedView && (
+              <span className="ml-2 bg-yellow-200 text-yellow-800 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">
+                Shared View
+              </span>
+            )}
           </h1>
 
           <div className="flex items-center gap-3"> {/* Increased gap slightly */}
-            <Button variant="outline" size="icon" onClick={handleShare} className="h-9 w-9 rounded-full"> {/* Matched Avatar size and shape */}
+            <Button variant="outline" size="icon" onClick={handleShare} className="h-9 w-9 rounded-full" disabled={isSharedView}> {/* Disable share button in shared view to prevent re-sharing already shared state with potentially stale data param */}
               <Share2 className="h-5 w-5" />
             </Button>
             <DropdownMenu>
