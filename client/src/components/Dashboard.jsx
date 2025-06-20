@@ -4,6 +4,14 @@ import { Avatar } from "@/components/ui/avatar";
 import { AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter, // Added DialogFooter for buttons
+} from "@/components/ui/dialog";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
 import { DropdownMenuContent } from "@/components/ui/dropdown-menu";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -14,7 +22,7 @@ import { TabsContent } from "@/components/ui/tabs";
 import { TabsList } from "@/components/ui/tabs";
 import { TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, ImageIcon, LinkIcon, X, CheckCircle } from "lucide-react";
+import { Upload, ImageIcon, LinkIcon, X, CheckCircle, Share2, Copy } from "lucide-react";
 import API from "@/services/API";
 import PreviewModal from "./PreviewModal";
 import { toast } from "sonner";
@@ -41,6 +49,9 @@ export default function Dashboard({ setAuthenticated }) {
   const [isEditing, setIsEditing] = useState(false);
   const [logoUrl, setLogoUrl] = useState("");
   const [logoConfirmed, setLogoConfirmed] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareableLink, setShareableLink] = useState("");
+  const [isSharedView, setIsSharedView] = useState(false);
 
   const [reportDetails, setReportDetails] = useState({
     clientName: "",
@@ -89,9 +100,31 @@ export default function Dashboard({ setAuthenticated }) {
     }
     const confirmed = localStorage.getItem("logoConfirmed") === "true";
     setLogoConfirmed(confirmed);
-  }, []);
+
+    // Check for shared view parameter
+    const queryParams = new URLSearchParams(location.search);
+    if (queryParams.get("shared") === "true") {
+      setIsSharedView(true);
+      // Optionally, display a toast or message indicating it's a shared view
+      toast(
+        <div className="text-sm font-semibold text-blue-600 font-sans">
+          ℹ️ Viewing shared report (read-only).
+        </div>,
+        { duration: 3000 }
+      );
+    }
+  }, [location]); // Add location to dependency array
 
   const handleUpload = async (file) => {
+    if (isSharedView) {
+      toast(
+        <div className="text-sm font-semibold text-orange-500 font-sans">
+          ⚠️ Uploads are disabled in shared view.
+        </div>,
+        { duration: 3000 }
+      );
+      return;
+    }
     try {
       setLoading(true);
       setError("");
@@ -109,18 +142,21 @@ export default function Dashboard({ setAuthenticated }) {
 
   const handleDrop = (e) => {
     e.preventDefault();
+    if (isSharedView) return;
     const files = e.dataTransfer.files;
     if (files.length > 0) handleUpload(files[0]);
   };
 
   const handleLogoDrop = (e) => {
     e.preventDefault();
+    if (isSharedView) return;
     setIsLogoDragging(false);
     const files = e.dataTransfer.files;
     if (files.length > 0) handleLogoUpload(files[0]);
   };
 
   const handleLogoUpload = (file) => {
+    if (isSharedView) return;
     if (file && file.type.startsWith("image/")) {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -140,6 +176,7 @@ export default function Dashboard({ setAuthenticated }) {
   };
 
   const handleLogoUrl = () => {
+    if (isSharedView) return;
     if (logoUrl.trim()) {
       const logoData = {
         type: "url",
@@ -152,6 +189,7 @@ export default function Dashboard({ setAuthenticated }) {
   };
 
   const handleRemoveLogo = () => {
+    if (isSharedView) return;
     setCustomerLogo({ type: null, data: null, preview: null });
     setLogoUrl("");
     setLogoLoaded(false);
@@ -160,13 +198,44 @@ export default function Dashboard({ setAuthenticated }) {
     localStorage.removeItem("logoConfirmed"); // ✅ clear flag
   };
 
+  const handleShare = () => {
+    const currentUrl = window.location.origin + window.location.pathname;
+    const link = `${currentUrl}?shared=true`;
+    setShareableLink(link);
+    setShowShareModal(true);
+  };
+
+  const handleCopyToClipboard = async () => {
+    if (!shareableLink) return;
+    try {
+      await navigator.clipboard.writeText(shareableLink);
+      toast(
+        <div className="text-sm font-semibold text-green-600 font-sans">
+          ✅ Link copied to clipboard!
+        </div>,
+        { duration: 2000 }
+      );
+      setShowShareModal(false); // Optionally close modal after copying
+    } catch (err) {
+      console.error("Failed to copy link: ", err);
+      toast(
+        <div className="text-sm font-semibold text-red-500 font-sans">
+          ❌ Failed to copy link.
+        </div>,
+        { duration: 2000 }
+      );
+    }
+  };
+
   const handleFileSelect = (e) => {
+    if (isSharedView) return;
     const files = e.target.files;
     if (files.length > 0) handleUpload(files[0]);
     localStorage.setItem("isUpload", "true");
   };
 
   const handleLogoFileSelect = (e) => {
+    if (isSharedView) return;
     const files = e.target.files;
     if (files.length > 0) handleLogoUpload(files[0]);
   };
@@ -247,9 +316,13 @@ export default function Dashboard({ setAuthenticated }) {
             {reportDetails.clientName || "Customer Name"} ETL Assessment Report
           </h1>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Avatar className="cursor-pointer h-9 w-9">
+          <div className="flex items-center gap-3"> {/* Increased gap slightly */}
+            <Button variant="outline" size="icon" onClick={handleShare} className="h-9 w-9 rounded-full"> {/* Matched Avatar size and shape */}
+              <Share2 className="h-5 w-5" />
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Avatar className="cursor-pointer h-9 w-9">
                 <AvatarFallback className="bg-gray-200 text-gray-800 font-semibold">
                   {username
                     .replace(/[^a-zA-Z ]/g, "")
@@ -272,7 +345,8 @@ export default function Dashboard({ setAuthenticated }) {
                 Logout
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+            </DropdownMenu>
+          </div>
         </div>
       </header>
 
@@ -315,8 +389,8 @@ export default function Dashboard({ setAuthenticated }) {
                     }}
                   />
 
-                  {/* ❌ Remove button only if not confirmed */}
-                  {!logoConfirmed && (
+                  {/* ❌ Remove button only if not confirmed AND not in shared view */}
+                  {!logoConfirmed && !isSharedView && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -327,8 +401,8 @@ export default function Dashboard({ setAuthenticated }) {
                     </Button>
                   )}
 
-                  {/* ✅ Tick mark only if logo is loaded and not confirmed */}
-                  {logoLoaded && !logoConfirmed && (
+                  {/* ✅ Tick mark only if logo is loaded and not confirmed AND not in shared view */}
+                  {logoLoaded && !logoConfirmed && !isSharedView && (
                     <CheckCircle
                       className="absolute -bottom-2 -right-2 h-6 w-6 text-green-500 bg-white rounded-full shadow cursor-pointer"
                       onClick={() => {
@@ -338,6 +412,11 @@ export default function Dashboard({ setAuthenticated }) {
                       }}
                     />
                   )}
+                </div>
+              ) : isSharedView ? (
+                <div className="w-full max-w-md mx-auto lg:mx-0 text-center py-6">
+                  <ImageIcon className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm text-gray-500">Logo upload is disabled in shared view.</p>
                 </div>
               ) : (
                 <Tabs
@@ -432,6 +511,7 @@ export default function Dashboard({ setAuthenticated }) {
                   variant="outline"
                   size="sm"
                   onClick={() => setIsEditing(!isEditing)}
+                  disabled={isSharedView} // Disable Edit button in shared view
                 >
                   {isEditing ? "Save" : "Edit"}
                 </Button>
@@ -483,7 +563,36 @@ export default function Dashboard({ setAuthenticated }) {
               </div>
             </Card>
 
-            {isUpload ? (
+            {isSharedView ? (
+              <div className="flex flex-col gap-4 justify-center items-center m-auto w-full max-w-xl p-10 rounded-2xl bg-white/20 text-center">
+                <Upload className="w-12 h-12 text-blue-700 mx-auto mb-2 opacity-50" />
+                <h3 className="text-xl font-semibold text-blue-800">View Mode</h3>
+                <p className="text-sm text-gray-700">
+                  You are viewing a shared report. Uploading new reports is disabled.
+                </p>
+                {isUpload && ( // Still show view buttons if a report was loaded via localStorage
+                  <div className="flex flex-col gap-6 justify-center m-auto mt-4">
+                    <Button
+                      className="bg-blue-700 hover:bg-blue-800 text-white py-4 px-8 rounded-lg text-lg font-semibold transition shadow-lg"
+                      onClick={() => navigate("/lineage")}
+                    >
+                      🔍 View ETL Lineage Flow
+                    </Button>
+                    <Button
+                      onClick={handlePreviewData}
+                      className="bg-blue-700 hover:bg-blue-800 text-white py-4 px-8 rounded-lg text-lg font-semibold transition shadow-lg"
+                    >
+                      📄 View ETL Detailed Info
+                    </Button>
+                    <PreviewModal
+                      open={showPreview}
+                      onClose={() => setShowPreview(false)}
+                      previewData={previewData}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : isUpload ? (
               <div className="flex flex-col gap-6 justify-center m-auto">
                 <Button
                   className="bg-blue-700 hover:bg-blue-800 text-white py-4 px-8 rounded-lg text-lg font-semibold transition shadow-lg"
@@ -537,6 +646,36 @@ export default function Dashboard({ setAuthenticated }) {
           </div>
         </section>
       </div>
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <Dialog open={showShareModal} onOpenChange={setShowShareModal}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Share Report</DialogTitle>
+              <DialogDescription>
+                Anyone with this link will be able to view the report. They will not be able to make changes or upload new data.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Input
+                  id="link"
+                  value={shareableLink}
+                  readOnly
+                  className="col-span-4"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleCopyToClipboard}>
+                <Copy className="mr-2 h-4 w-4" />
+                Copy link
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
