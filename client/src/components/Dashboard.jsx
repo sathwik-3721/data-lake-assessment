@@ -26,6 +26,7 @@ import { Upload, ImageIcon, LinkIcon, X, CheckCircle, Share2, Copy } from "lucid
 import API from "@/services/API";
 import PreviewModal from "./PreviewModal";
 import { toast } from "sonner";
+import pako from "pako";
 
 export default function Dashboard({ setAuthenticated }) {
   const navigate = useNavigate();
@@ -117,8 +118,17 @@ export default function Dashboard({ setAuthenticated }) {
 
       if (sharedDataParam) {
         try {
-          const decodedData = atob(decodeURIComponent(sharedDataParam)); // Decode URI component first, then Base64
-          const parsedData = JSON.parse(decodedData);
+          const base64DecodedString = atob(decodeURIComponent(sharedDataParam)); // Decode URI component first, then Base64
+
+          // Convert binary string back to Uint8Array for pako
+          const compressedDataUint8Array = new Uint8Array(base64DecodedString.length);
+          for (let i = 0; i < base64DecodedString.length; i++) {
+            compressedDataUint8Array[i] = base64DecodedString.charCodeAt(i);
+          }
+
+          // Decompress the data
+          const decompressedJsonString = pako.inflate(compressedDataUint8Array, { to: 'string' });
+          const parsedData = JSON.parse(decompressedJsonString);
 
           if (parsedData.reportDetails) setReportDetails(parsedData.reportDetails);
           if (parsedData.customerLogo) {
@@ -303,7 +313,14 @@ export default function Dashboard({ setAuthenticated }) {
 
     try {
       const jsonString = JSON.stringify(dataToShare);
-      const base64Data = btoa(jsonString); // Browser's built-in Base64 encoder
+      // Compress the JSON string
+      const compressedDataUint8Array = pako.deflate(jsonString);
+      // Convert Uint8Array to a binary string for btoa
+      let binaryString = '';
+      for (let i = 0; i < compressedDataUint8Array.length; i++) {
+        binaryString += String.fromCharCode(compressedDataUint8Array[i]);
+      }
+      const base64Data = btoa(binaryString);
 
       // Construct the base URL (e.g., http://localhost:5173/dashboard)
       // window.location.origin gives http://localhost:5173
